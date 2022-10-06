@@ -14,8 +14,8 @@ pub trait AffectHeads<E> {
 }
 
 impl<E, F> AffectHeads<E> for F
-where
-    F: for<'a> Fn(HeadsState<'a, E>) -> HeadsState<'a, E>,
+    where
+        F: for<'a> Fn(HeadsState<'a, E>) -> HeadsState<'a, E>,
 {
     fn affect<'a>(&self, input: HeadsState<'a, E>) -> HeadsState<'a, E> {
         self(input)
