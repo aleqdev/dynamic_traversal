@@ -1,23 +1,23 @@
+use crate::{CompilationState, GeneralCompilationData};
 
-use enum_dispatch::enum_dispatch;
-
-use crate::Heads;
-
-pub struct HeadsState<'a, E> {
-    pub heads: &'a mut Heads<E>,
-    pub head_index: usize,
+pub trait AffectCompilation<E, D = GeneralCompilationData> {
+    fn affect(&self, state: CompilationState<E, D>) -> CompilationState<E, D>;
 }
 
-#[enum_dispatch]
-pub trait AffectHeads<E> {
-    fn affect<'a>(&self, input: HeadsState<'a, E>) -> HeadsState<'a, E>;
-}
-
-impl<E, F> AffectHeads<E> for F
-    where
-        F: for<'a> Fn(HeadsState<'a, E>) -> HeadsState<'a, E>,
+impl<'a, T, E, D> AffectCompilation<E, D> for &'a T
+where
+    T: AffectCompilation<E, D>,
 {
-    fn affect<'a>(&self, input: HeadsState<'a, E>) -> HeadsState<'a, E> {
-        self(input)
+    fn affect(&self, state: CompilationState<E, D>) -> CompilationState<E, D> {
+        T::affect(self, state)
+    }
+}
+
+impl<'a, T, E, D> AffectCompilation<E, D> for &'a mut T
+where
+    T: AffectCompilation<E, D>,
+{
+    fn affect(&self, state: CompilationState<E, D>) -> CompilationState<E, D> {
+        T::affect(self, state)
     }
 }

@@ -1,58 +1,36 @@
-
 use std::fmt::Debug;
 
-use dynamic_queue::{add_head, AffectHeads, HeadsState, add_effect, DynamicQueue, Head, Traverse};
+use dynamic_traversal::{
+    AffectCompilation, CompilationState, Compile, GeneralCompilationStateExt, TraverseWith,
+};
 
 #[derive(Debug)]
 struct I(i32);
 
-impl AffectHeads<i32> for I {
-    fn affect<'a>(&self, input: HeadsState<'a, i32>) -> HeadsState<'a, i32> {
-        add_effect(self.0, add_head(input))
-    }
-}
-
-struct Iter<'a, 'b, T, E>
-where
-    T: AffectHeads<E>
-{
-    traverse: &'b mut Traverse<'a, T, E>
-}
-
-impl<'a, 'b, T, E> Iterator for Iter<'a, 'b, T, E>
-where
-    T: AffectHeads<E>,
-    E: Clone
-{
-    type Item = Box<[(&'a T, &'b Head<E>)]>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.traverse.next()
-    }
-}
-
-fn iterate<'a, T, E>(queue: &'a DynamicQueue<T>) -> impl Iterator + 'a
-where
-    T: AffectHeads<E>,
-    E: Clone + 'a
-{
-    Iter {
-        traverse: &mut queue.iter()
+impl AffectCompilation<isize> for I {
+    fn affect(&self, state: CompilationState<isize>) -> CompilationState<isize> {
+        state
+            .yield_element()
+            .when(self.0 % 4 == 0, |state| state.add_heads(1).advance_head(1))
+            .no_otherwise()
+            .advance_head(1)
+            .advance_index(1)
     }
 }
 
 #[test]
 fn test() {
-    use dynamic_queue::*;
-
-    let mut c = DynamicQueue::default();
+    let mut c = vec![];
 
     c.extend((0..10).map(I));
 
-    println!("{:?}", c);
+    let mut comp = c.iter().compile();
+    comp.remove_empty_heads();
 
-    let mut t = c.iter();
-    while let Some(i) = t.next() {
-        println!("{:?}", i);
+    for chunk in c.traverse_with(&comp) {
+        for element in chunk.iter() {
+            print!("{: <16} ", format!("{:?}", element));
+        }
+        println!();
     }
 }
